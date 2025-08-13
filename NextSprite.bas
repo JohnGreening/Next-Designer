@@ -2,7 +2,7 @@ $Debug
 Option _Explicit
 
 Dim f&
-Screen _NewImage(640, 480, 32) ' 800x600 window, 32-bit color
+Screen _NewImage(640, 480, 32) ' 640X480 window, 32-bit color
 _FullScreen
 _Title "ZX Spectrum Next Sprite/Tile/Tilemap Editor IDE"
 _MouseShow ' Show mouse cursor
@@ -15,7 +15,7 @@ Dim Shared As String activeKey
 Dim Shared As _Unsigned Long colorWhite, colorBlack
 
 ' color table, each 0-511 element has the rrr,ggg,bbb component set
-Dim Shared ColorTable(511, 3) As Integer
+Dim Shared ColorTable(511, 2) As Integer
 Dim Shared ColorValue(511) As _Unsigned Long
 Dim Shared As Integer sel512Colour
 Dim Shared As Integer canvasColour
@@ -61,19 +61,24 @@ Const NOT_SET = 999
 Const EDIT_SPRITE = 0
 Const EDIT_TILE = 1
 Const EDIT_TILEMAP = 2
-Const menu_Base = 0
-Const menu_File = 1
-Const menu_Edit = 2
-Const menu_editMode = 3
-Const menu_GridSize = 4
-Const menu_Generate = 5
-Const menu_Import = 6
+Const MENU_BASE = 0
+Const MENU_FILE = 1
+Const MENU_EDIT = 2
+Const MENU_EDITMODE = 3
+Const MENU_GRIDSIZE = 4
+Const MENU_GENERATE = 5
+Const MENU_IMPORT = 6
 Const MAX_SPRITES = 64
 Const MAX_TILES = 128
 Const MAX_TILEMAP_PAGES = 10
-Const boxesPerPage = 32
-Const generate_raw = 0
-Const generate_rle = 1
+Const BOXES_PER_PAGE = 32
+Const KEY_ESC = Chr$(27)
+Const KEY_PGUP = "0I"
+Const KEY_PGDN = "0Q"
+Const KEY_LEFT = "0K"
+Const KEY_RIGHT = "0W"
+Const KEY_DOWN = "0P"
+Const KEY_UP = "0H"
 
 Dim Shared As String projectAmended
 
@@ -109,7 +114,7 @@ projectAmended = "N"
 Do
 
     ' Draw submenu only if its parent is active
-    If activeMenu > menu_Base Then
+    If activeMenu > MENU_BASE Then
         DrawMenu (activeMenu)
     End If
 
@@ -130,12 +135,12 @@ Do
 
     _Display
     _Limit 60
-Loop Until activeKey = Chr$(27) ' Exit on ESC
+Loop Until activeKey = KEY_ESC ' Exit on ESC
 System
 
 Sub initialDraw
     Cls
-    activeMenu = menu_Base
+    activeMenu = MENU_BASE
 
     Select Case editMode
         Case EDIT_SPRITE
@@ -297,7 +302,7 @@ Sub drawPaletteGrid ()
         Line (531, iy + 1)-(531 + CELL_SIZE_PIXELS - 2, iy + 1 + CELL_SIZE_PIXELS - 2), ColorValue(palettes(editMode, paletteSelected, canvasColour)), BF
         c = palettes(editMode, paletteSelected, canvasColour)
         _PrintString (545, iy), lead0(c, 3)
-        _PrintString (545, iy + 11), lead0(ColorTable(c, 1), 3) + " " + lead0(ColorTable(c, 2), 3) + " " + lead0(ColorTable(c, 3), 3)
+        _PrintString (545, iy + 11), lead0(ColorTable(c, 0), 3) + " " + lead0(ColorTable(c, 1), 3) + " " + lead0(ColorTable(c, 2), 3)
     Else
         _PrintString (545, iy), "not set"
         _PrintString (545, iy + 11), String$(11, " ")
@@ -335,7 +340,7 @@ Sub draw512ColourGrid ()
     Line (530, iy)-(530 + CELL_SIZE_PIXELS, iy + CELL_SIZE_PIXELS), colorWhite, B
     Line (531, iy + 1)-(531 + CELL_SIZE_PIXELS - 2, iy + 1 + CELL_SIZE_PIXELS - 2), ColorValue(sel512Colour), BF
     _PrintString (545, iy), lead0(sel512Colour, 3)
-    _PrintString (545, iy + 11), lead0(ColorTable(sel512Colour, 1), 3) + " " + lead0(ColorTable(sel512Colour, 2), 3) + " " + lead0(ColorTable(sel512Colour, 3), 3)
+    _PrintString (545, iy + 11), lead0(ColorTable(sel512Colour, 0), 3) + " " + lead0(ColorTable(sel512Colour, 1), 3) + " " + lead0(ColorTable(sel512Colour, 2), 3)
 
     _PrintString (ix, iy - 16), "512 Palette Choice"
 
@@ -401,7 +406,7 @@ Sub drawPreviewBoxes ()
     c = 1
     box = 0
 
-    For b = (boxPage * boxesPerPage) To ((boxPage * boxesPerPage) + boxesPerPage - 1)
+    For b = (boxPage * BOXES_PER_PAGE) To ((boxPage * BOXES_PER_PAGE) + BOXES_PER_PAGE - 1)
         Line (x, y)-(x + pix, y + pix), colorWhite, B
         boxdata(box, 1) = x
         boxdata(box, 2) = y
@@ -433,9 +438,9 @@ Sub paintPreviewBoxes
 
     z = getWidth - 1
 
-    For b = (boxPage * boxesPerPage) To ((boxPage * boxesPerPage) + boxesPerPage - 1)
-        lx = boxdata(b Mod boxesPerPage, 1) + 1
-        ly = boxdata(b Mod boxesPerPage, 2) + 1
+    For b = (boxPage * BOXES_PER_PAGE) To ((boxPage * BOXES_PER_PAGE) + BOXES_PER_PAGE - 1)
+        lx = boxdata(b Mod BOXES_PER_PAGE, 1) + 1
+        ly = boxdata(b Mod BOXES_PER_PAGE, 2) + 1
         For x = 0 To z
             For y = 0 To z
                 c = getSpriteColour(b, x, y)
@@ -479,10 +484,10 @@ Sub updatePreviewBoxes (canvasIndex As Integer)
 
 
     For b = canvasIndex To canvasindex1
-        lx = boxdata(b Mod boxesPerPage, 1) + 1
-        ly = boxdata(b Mod boxesPerPage, 2) + 1
+        lx = boxdata(b Mod BOXES_PER_PAGE, 1) + 1
+        ly = boxdata(b Mod BOXES_PER_PAGE, 2) + 1
 
-        If b >= (boxPage * boxesPerPage) And b <= ((boxPage * boxesPerPage) + boxesPerPage - 1) Then
+        If b >= (boxPage * BOXES_PER_PAGE) And b <= ((boxPage * BOXES_PER_PAGE) + BOXES_PER_PAGE - 1) Then
             For x = 0 To z
                 For y = 0 To z
                     c = getSpriteColour(b, x, y)
@@ -496,23 +501,23 @@ End Sub
 
 Sub handleMenuClick (activemenu As Integer, menuSelected As String)
     Select Case activemenu
-        Case menu_Base
+        Case MENU_BASE
             Select Case menuSelected
                 Case "File ..."
-                    activemenu = menu_File
+                    activemenu = MENU_FILE
                 Case "Edit"
-                    activemenu = menu_Edit
+                    activemenu = MENU_EDIT
                 Case "Edit Type"
-                    activemenu = menu_editMode
+                    activemenu = MENU_EDITMODE
                 Case "Grid Size"
-                    activemenu = menu_GridSize
+                    activemenu = MENU_GRIDSIZE
                 Case "Generate"
-                    activemenu = menu_Generate
+                    activemenu = MENU_GENERATE
                 Case "Import"
-                    activemenu = menu_Import
+                    activemenu = MENU_IMPORT
             End Select
 
-        Case menu_File
+        Case MENU_FILE
             Select Case menuSelected
                 Case "New ..."
                     Call NewProject
@@ -521,10 +526,10 @@ Sub handleMenuClick (activemenu As Integer, menuSelected As String)
                 Case "Save ..."
                     Call SaveProject
             End Select
-            activemenu = menu_Base
+            activemenu = MENU_BASE
             Call initialDraw
 
-        Case menu_Edit
+        Case MENU_EDIT
             Select Case menuSelected
                 Case "Copy"
                     Call clipBoardCopy(editMode)
@@ -533,25 +538,25 @@ Sub handleMenuClick (activemenu As Integer, menuSelected As String)
                 Case "Paste"
                     Call clipBoardPaste(editMode)
             End Select
-            activemenu = menu_Base
+            activemenu = MENU_BASE
             Call initialDraw
 
-        Case menu_editMode
+        Case MENU_EDITMODE
             Select Case menuSelected
                 Case "Sprite"
                     editMode = EDIT_SPRITE
                     editAssetType = EDIT_SPRITE
-                    maxPage = (MAX_SPRITES / boxesPerPage) - 1
+                    maxPage = (MAX_SPRITES / BOXES_PER_PAGE) - 1
                     If boxPage > maxPage Then boxPage = maxPage
                 Case "Tile"
                     editMode = EDIT_TILE
                     editAssetType = EDIT_TILE
-                    maxPage = (MAX_TILES / boxesPerPage) - 1
+                    maxPage = (MAX_TILES / BOXES_PER_PAGE) - 1
                     If boxPage > maxPage Then boxPage = maxPage
                 Case "TileMap"
                     editMode = EDIT_TILEMAP
                     editAssetType = EDIT_TILE
-                    maxPage = (MAX_TILES / boxesPerPage) - 1
+                    maxPage = (MAX_TILES / BOXES_PER_PAGE) - 1
                     canvasIndex = 0
                     boxPage = 0
                     tilePainted = NOT_SET
@@ -561,7 +566,7 @@ Sub handleMenuClick (activemenu As Integer, menuSelected As String)
             'clipBoardhasData = 0
             Call initialDraw
 
-        Case menu_GridSize
+        Case MENU_GRIDSIZE
             Select Case editMode
                 Case EDIT_SPRITE, EDIT_TILE
                     gridXSize = Val(Left$(menuSelected, 2))
@@ -579,13 +584,13 @@ Sub handleMenuClick (activemenu As Integer, menuSelected As String)
             'clipBoardhasData = 0
             Call initialDraw
 
-        Case menu_Generate
+        Case MENU_GENERATE
             Select Case menuSelected
                 Case "Generate .ODN"
                     Call GenerateFiles
             End Select
             Call initialDraw
-        Case menu_Import
+        Case MENU_IMPORT
             Select Case menuSelected
                 Case "Sprite as .png"
                     Call ImportSprite
@@ -599,29 +604,26 @@ Sub handleActiveKey ()
     If Len(activeKey) > 1 Then activeKey = "0" + Right$(activeKey, 1)
 
     Select Case activeKey
-        Case Chr$(27)
+        Case KEY_ESC
             ' [Esc] key
-            If activeMenu > menu_Base Then
+            If activeMenu > MENU_BASE Then
                 activeKey = ""
-                activeMenu = menu_Base
+                activeMenu = MENU_BASE
                 Call initialDraw
             Else
                 q = abandonEdits
             End If
-        Case "0I"
-            '[PgUp] key
+        Case KEY_PGUP
             boxPage = boxPage - 1
             If boxPage < 0 Then boxPage = 0
             Call drawPreviewBoxes
             Call paintPreviewBoxes
-        Case "0Q"
-            '[PgDn] key
+        Case KEY_PGDN
             boxPage = boxPage + 1
             If boxPage > maxPage Then boxPage = maxPage
             Call drawPreviewBoxes
             Call paintPreviewBoxes
-        Case "0K"
-            ' shift left
+        Case KEY_LEFT
             Select Case editMode
                 Case EDIT_SPRITE, EDIT_TILE
                     Call editInitialisation
@@ -631,8 +633,7 @@ Sub handleActiveKey ()
                     Call updatePreviewBoxes(canvasIndex)
                     projectAmended = "Y"
             End Select
-        Case "0M"
-            ' shift right
+        Case KEY_RIGHT
             Select Case editMode
                 Case EDIT_SPRITE, EDIT_TILE
                     Call editInitialisation
@@ -642,8 +643,7 @@ Sub handleActiveKey ()
                     Call updatePreviewBoxes(canvasIndex)
                     projectAmended = "Y"
             End Select
-        Case "0P"
-            ' shift down
+        Case KEY_DOWN
             Select Case editMode
                 Case EDIT_SPRITE, EDIT_TILE
                     Call editInitialisation
@@ -660,8 +660,7 @@ Sub handleActiveKey ()
                         Call drawTilemapGrid
                     End If
             End Select
-        Case "0H"
-            ' shift up
+        Case KEY_UP
             Select Case editMode
                 Case EDIT_SPRITE, EDIT_TILE
                     Call editInitialisation
@@ -718,7 +717,7 @@ Function abandonEdits%
             q = _MessageBox("warning", "Abandon Edits Made?", "yesno", "question", q)
 
             If q = 0 Then
-                If activeKey = Chr$(27) Then activeKey = ""
+                If activeKey = KEY_ESC Then activeKey = ""
             End If
             abandonEdits = q
     End Select
@@ -954,7 +953,7 @@ Function chkBoxClick% (x, y)
 
         If x >= lx And x <= hx And y >= ly And y <= hy Then
             chkBoxClick = 1
-            canvasIndex = (boxPage * boxesPerPage) + box
+            canvasIndex = (boxPage * BOXES_PER_PAGE) + box
             Select Case editMode
                 Case EDIT_SPRITE, EDIT_TILE
                     Call drawCanvasGrid
@@ -1377,7 +1376,7 @@ Sub GenerateFiles ()
                     Case "SPRITEPALETTE"
                         Call generatePalette(EDIT_SPRITE, 0)
                     Case "PAGEDATA"
-                        Call generateMap(generate_rle)
+                        Call generateMap
                     Case "ORG"
                         Call generateOrg(indata)
                     Case "ZXSPECTRUMNEXT"
@@ -1510,41 +1509,41 @@ Sub generatePalette (patternType As Integer, palNo As Integer)
     Call writeFiles("", 0, "Y", "Y", "N")
 End Sub
 
-Sub generateMap (gentype As Integer)
+Sub generateMap ()
     Dim As Integer l, x, z, t, t1, c, gt
-    Dim As String outdata, page
+    Dim As String page
 
     Call writeFiles("; Page Data, aka the tilemap pages", 0, "Y", "N", "N")
 
     For l = 0 To getItemGenCount(EDIT_TILEMAP)
         Call writeFiles("", 0, "Y", "N", "N")
 
-        Select Case gentype
-            Case generate_raw
-                GoSub generateRaw
-            Case generate_rle
-                GoSub generateRLE
-        End Select
+        '        Select Case gentype
+        '            Case generate_raw
+        '                GoSub generateRaw
+        '            Case generate_rle
+        GoSub generateRLE
+        '        End Select
     Next l
 
     Exit Sub
 
-    generateRaw:
-    Call writeFiles("page" + lead0(l, 3) + ":", 0, "Y", "Y", "N")
-    'Call writeFiles("defs 1280, 0", 0, "Y", "N", "N")
-
-    z = 0
-    outdata = "DB "
-    For x = 0 To 1279
-        outdata = outdata + decToHex(tilemapPages(l, x)) + ","
-        Call writeFiles("", tilemapPages(l, x), "N", "N", "Y")
-        z = z + 1
-        If z Mod 40 = 0 Then
-            Call writeFiles(Left$(outdata, Len(outdata) - 1), 0, "N", "Y", "N")
-            outdata = "DB "
-        End If
-    Next x
-    Return
+    '    generateRaw:
+    '    Call writeFiles("page" + lead0(l, 3) + ":", 0, "Y", "Y", "N")
+    '    'Call writeFiles("defs 1280, 0", 0, "Y", "N", "N")
+    '
+    '    z = 0
+    '    outdata = "DB "
+    '    For x = 0 To 1279
+    '        outdata = outdata + decToHex(tilemapPages(l, x)) + ","
+    '    Call writeFiles("", tilemapPages(l, x), "N", "N", "Y")
+    '    z = z + 1
+    '    If z Mod 40 = 0 Then
+    '        Call writeFiles(Left$(outdata, Len(outdata) - 1), 0, "N", "Y", "N")
+    '        outdata = "DB "
+    '    End If
+    '    Next x
+    '    Return
 
     generateRLE:
     page = "page" + lead0(l, 3)
@@ -1728,9 +1727,9 @@ Sub setupColorTable
         ggg = RGBconv%(t2)
         bbb = RGBconv%(t3)
 
-        ColorTable(z, 1) = rrr
-        ColorTable(z, 2) = ggg
-        ColorTable(z, 3) = bbb
+        ColorTable(z, 0) = rrr
+        ColorTable(z, 1) = ggg
+        ColorTable(z, 2) = bbb
         ColorValue(z) = _RGB(rrr, ggg, bbb)
     Next z
 
