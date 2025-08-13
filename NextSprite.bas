@@ -76,7 +76,7 @@ Const KEY_ESC = Chr$(27)
 Const KEY_PGUP = "0I"
 Const KEY_PGDN = "0Q"
 Const KEY_LEFT = "0K"
-Const KEY_RIGHT = "0W"
+Const KEY_RIGHT = "0M"
 Const KEY_DOWN = "0P"
 Const KEY_UP = "0H"
 
@@ -226,9 +226,14 @@ End Sub
 
 Sub drawCanvasGrid ()
     Dim As Integer ix, iy, x1, y1, x2, y2, l1, l2
+
+    ' set initial LHS for grid
     ix = 10
     iy = 50
 
+    ' get the sizing depending on edit mode, sprite or tile
+    ' this allows us to edit a sprite/tile bigger than the default 16/8 pixel size
+    ' i.e. we edit potentially edit more than one sprite/tile at a time
     If editMode = EDIT_SPRITE Then
         gridXSize = spriteXGridSize
         gridYSize = spriteYGridSize
@@ -254,6 +259,8 @@ Sub drawCanvasGrid ()
         y1 = y1 + CELL_SIZE_PIXELS
     Next l2
 
+    ' save the final grid size into these globals so that we can later detect if
+    ' mouse click etc has occured within the grid
     canvaslX = ix
     canvaslY = iy
     canvashX = x2
@@ -262,17 +269,18 @@ End Sub
 
 
 Sub drawPaletteGrid ()
-    Dim As Integer ix, iy, x, y, x1, y1, x2, y2, l1, l2, z, c
+    Dim As Integer ix, iy, x1, y1, x2, y2, boxesInLine, gridLines, z, c
+
+    ' initial lhs of grid
     ix = 10
     iy = 330
-    x = 64
-    y = 4
+
     x1 = ix
     y1 = iy
 
     z = 0
-    For l2 = 1 To y
-        For l1 = 1 To x
+    For gridLines = 1 To 4
+        For boxesInLine = 1 To 64
             x2 = x1 + CELL_SIZE_PIXELS - 1
             y2 = y1 + CELL_SIZE_PIXELS - 1
 
@@ -282,11 +290,12 @@ Sub drawPaletteGrid ()
             End If
             z = z + 1
             x1 = x1 + CELL_SIZE_PIXELS
-        Next l1
+        Next boxesInLine
 
         x1 = ix
         y1 = y1 + CELL_SIZE_PIXELS
-    Next l2
+    Next gridLines
+
     Select Case editMode
         Case EDIT_SPRITE
             _PrintString (30, iy - 12), "Sprite Palette #" + lead0(paletteSelected, 1)
@@ -308,6 +317,8 @@ Sub drawPaletteGrid ()
         _PrintString (545, iy + 11), String$(11, " ")
     End If
 
+    ' save the final grid size into these globals so that we can later detect if
+    ' mouse click etc has occured within the grid
     palettelX = ix
     palettelY = iy
     palettehX = x2
@@ -315,27 +326,28 @@ Sub drawPaletteGrid ()
 End Sub
 
 Sub draw512ColourGrid ()
-    Dim As Integer ix, iy, x1, y1, x2, y2, l1, l2, z
+    Dim As Integer ix, iy, x1, y1, x2, y2, boxesInLine, gridLines, z
 
+    ' initial LHS of grid
     ix = 10
     iy = 395
 
     x1 = ix
     y1 = iy
     z = 0
-    For l2 = 1 To 8
-        For l1 = 1 To 64
+    For gridLines = 1 To 8
+        For boxesInLine = 1 To 64
             x2 = x1 + CELL_SIZE_PIXELS - 1
             y2 = y1 + CELL_SIZE_PIXELS - 1
             Line (x1, y1)-(x2, y2), ColorValue(z), BF
 
             x1 = x1 + CELL_SIZE_PIXELS
             z = z + 1
-        Next l1
+        Next boxesInLine
 
         x1 = ix
         y1 = y1 + CELL_SIZE_PIXELS
-    Next l2
+    Next gridLines
 
     Line (530, iy)-(530 + CELL_SIZE_PIXELS, iy + CELL_SIZE_PIXELS), colorWhite, B
     Line (531, iy + 1)-(531 + CELL_SIZE_PIXELS - 2, iy + 1 + CELL_SIZE_PIXELS - 2), ColorValue(sel512Colour), BF
@@ -344,6 +356,8 @@ Sub draw512ColourGrid ()
 
     _PrintString (ix, iy - 16), "512 Palette Choice"
 
+    ' save the final grid size into these globals so that we can later detect if
+    ' mouse click etc has occured within the grid
     colour512lX = ix
     colour512lY = iy
     colour512hX = x2
@@ -351,8 +365,9 @@ Sub draw512ColourGrid ()
 End Sub
 
 Sub drawTilemapGrid ()
-    Dim As Integer ix, iy, x1, y1, x2, y2, l1, l2, pix
+    Dim As Integer ix, iy, x1, y1, x2, y2, xCols, yLines, pix
 
+    ' initial LHS of grid
     ix = 10
     iy = 50
 
@@ -361,21 +376,23 @@ Sub drawTilemapGrid ()
 
     x1 = ix
     y1 = iy
-    For l2 = 0 To 31
-        For l1 = 0 To 39
+    For yLines = 0 To 31
+        For xCols = 0 To 39
             x2 = x1 + pix + 1
             y2 = y1 + pix + 1
             Line (x1, y1)-(x2, y2), colorWhite, B
-            Call paint1Tile(tilemapPages(tilemapPage, (l2 * 40) + l1))
+            Call paint1Tile(tilemapPages(tilemapPage, (yLines * 40) + xCols))
             Put (x1 + 1, y1 + 1), bg1(), PSet
 
             x1 = x1 + pix + 1
-        Next l1
+        Next xCols
 
         x1 = ix
         y1 = y1 + pix + 1
-    Next l2
+    Next yLines
 
+    ' save the final grid size into these globals so that we can later detect if
+    ' mouse click etc has occured within the grid
     tilemapGridlx = ix
     tilemapGridly = iy
     tilemapGridhx = x2 - 1
