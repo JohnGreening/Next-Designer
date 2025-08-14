@@ -1,13 +1,13 @@
 $Debug
 Option _Explicit
 
-Dim f&
+Dim As Long font
 Screen _NewImage(640, 480, 32) ' 640X480 window, 32-bit color
 _FullScreen
 _Title "ZX Spectrum Next Sprite/Tile/Tilemap Editor IDE"
 _MouseShow ' Show mouse cursor
-f& = _LoadFont("/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf", 11, "MONOSPACE,DONTBLEND")
-_Font f&
+font = _LoadFont("/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf", 11, "MONOSPACE,DONTBLEND")
+_Font font
 
 ' Main variables
 Dim Shared As Integer activeMenu
@@ -17,6 +17,7 @@ Dim Shared As _Unsigned Long colorWhite, colorBlack
 ' color table, each 0-511 element has the rrr,ggg,bbb component set
 Dim Shared ColorTable(511, 2) As Integer
 Dim Shared ColorValue(511) As _Unsigned Long
+Dim Shared ColorValueLUT(255) As _Unsigned Long
 Dim Shared As Integer sel512Colour
 Dim Shared As Integer canvasColour
 
@@ -278,6 +279,8 @@ Sub drawPaletteGrid ()
     x1 = ix
     y1 = iy
 
+    Call updateColorValueLUT
+
     z = 0
     For gridLines = 1 To 4
         For boxesInLine = 1 To 64
@@ -286,7 +289,8 @@ Sub drawPaletteGrid ()
 
             Line (x1, y1)-(x2, y2), colorWhite, B
             If palettes(editMode, paletteSelected, z) <> NOT_SET Then
-                Line (x1 + 1, y1 + 1)-(x2 - 1, y2 - 1), ColorValue(palettes(editMode, paletteSelected, z)), BF
+                '                Line (x1 + 1, y1 + 1)-(x2 - 1, y2 - 1), ColorValue(palettes(editMode, paletteSelected, z)), BF
+                Line (x1 + 1, y1 + 1)-(x2 - 1, y2 - 1), ColorValueLUT(z), BF
             End If
             z = z + 1
             x1 = x1 + CELL_SIZE_PIXELS
@@ -579,6 +583,7 @@ Sub handleMenuClick (activemenu As Integer, menuSelected As String)
                     tilePainted = NOT_SET
                     clipBoardhasData = 0
             End Select
+            Call updateColorValueLUT
             canvasColour = 0
             'clipBoardhasData = 0
             Call initialDraw
@@ -1018,6 +1023,7 @@ Sub NewProject ()
     gridXSize = 16
     gridYSize = 16
     clipBoardhasData = 0
+    Call updateColorValueLUT
 End Sub
 
 Sub LoadProject ()
@@ -1043,6 +1049,7 @@ Sub LoadProject ()
     Close #1
     ChDir oDrive
     projectAmended = "N"
+    Call updateColorValueLUT
 End Sub
 
 Sub loadProjData (indata As String)
@@ -1674,7 +1681,8 @@ Function getSpriteColour~& (s As Integer, x As Integer, y As Integer)
     ' return the sprite/tile RGB colour value
 
     c = getSpriteValue(s, x, y)
-    c1 = ColorValue(palettes(editAssetType, paletteSelected, c))
+    '    c1 = ColorValue(palettes(editAssetType, paletteSelected, c))
+    c1 = ColorValueLUT(c)
     getSpriteColour = c1
 End Function
 
@@ -1720,6 +1728,20 @@ Function getOffset% (x As Integer, y As Integer)
     getOffset = x1 + y1
 
 End Function
+
+Sub updateColorValueLUT
+    Dim As Integer colorLoop, colorIndex
+
+    For colorLoop = 0 To 255
+        colorIndex = palettes(editAssetType, paletteSelected, colorLoop)
+        If colorIndex = NOT_SET Then
+            ColorValueLUT(colorLoop) = 0
+        Else
+            ColorValueLUT(colorLoop) = ColorValue(colorIndex)
+        End If
+    Next colorLoop
+End Sub
+
 
 Function getWidth%
     ' simply return the pixel width of the edit type
